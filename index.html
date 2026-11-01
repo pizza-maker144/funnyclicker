@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>тыктык</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: system-ui, sans-serif;
+            background: linear-gradient(135deg, #312e81, #0f172a);
+            color: #e2e8f0;
+        }
+
+        .card {
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+            max-width: 420px;
+            width: 100%;
+            padding: 40px;
+            border-radius: 30px;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            text-align: center;
+            backdrop-filter: blur(8px);
+        }
+
+        h1 {
+            font-size: 28px;
+            margin-bottom: 12px;
+        }
+
+        p {
+            color: #94a3b8;
+            line-height: 1.6;
+            margin-bottom: 24px;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px 16px;
+            margin-bottom: 12px;
+            font-size: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            color: #e2e8f0;
+            outline: none;
+        }
+
+        input:focus {
+            border-color: #6366f1;
+        }
+
+        button {
+            padding: 12px 24px;
+            font-size: 16px;
+            border: none;
+            border-radius: 10px;
+            background: #10b981;
+            color: white;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        button:hover:#059669 {
+            background: #4f46e5;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: default;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .score {
+            font-size: 56px;
+            font-weight: 700;
+            color: #a5b4fc;
+            margin-bottom: 20px;
+        }
+
+        #click-btn {
+            width: 100%;
+            padding: 28px;
+            font-size: 22px;
+            margin-bottom: 12px;
+        }
+
+        .result {
+            margin-top: 16px;
+            font-weight: 600;
+            color: #a5b4fc;
+            min-height: 24px;
+        }
+
+        .actions {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 12px;
+        }
+
+        #surrender-btn {
+            background: #e11d48;
+        }
+
+        #surrender-btn:hover:not(:disabled) {
+            background: #be123c;
+        }
+
+        .footer {
+            margin-top: 24px;
+        }
+
+        .footer a {
+            color: #a5b4fc;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div id="start-screen">
+            <h1>тыкер</h1>
+            <p>представься и натыкай большую цыфарку за 10 секунд.</p>
+            <input id="name" type="text" placeholder="представься">
+            <button id="start-btn" disabled>Играть</button>
+        </div>
+
+        <div id="game-screen" class="hidden">
+            <h1 id="hello"></h1>
+            <div class="score" id="score">0</div>
+            <button id="click-btn">жми!</button>
+            <div class="result" id="result"></div>
+            <div class="actions">
+                <button id="restart-btn" class="hidden">тренироваться</button>
+                <button id="surrender-btn" class="hidden">сдаться</button>
+            </div>
+        </div>
+
+        <div class="footer">
+            <a href="about.html">О сайте</a>
+        </div>
+    </div>
+
+    <script>
+        const startScreen = document.getElementById("start-screen");
+        const gameScreen = document.getElementById("game-screen");
+        const nameInput = document.getElementById("name");
+        const startBtn = document.getElementById("start-btn");
+        const restartBtn = document.getElementById("restart-btn");
+        const surrenderBtn = document.getElementById("surrender-btn");
+        const hello = document.getElementById("hello");
+        const scoreEl = document.getElementById("score");
+        const resultEl = document.getElementById("result");
+        const clickBtn = document.getElementById("click-btn");
+
+        let clicks = 0;
+        let timeLeft = 10;
+        let timer = null;
+        let playing = false;
+        let playerName = "";
+
+        function startGame() {
+            clicks = 0;
+            timeLeft = 10;
+            playing = true;
+            hello.textContent = "тыкай быстрее, " + playerName + "!";
+            scoreEl.textContent = "0";
+            resultEl.textContent = "Осталось: 10 сек";
+            clickBtn.disabled = false;
+            restartBtn.classList.add("hidden");
+            surrenderBtn.classList.add("hidden");
+
+            clearInterval(timer);
+            timer = setInterval(() => {
+                timeLeft -= 1;
+                if (timeLeft <= 0) {
+                    endGame();
+                } else {
+                    resultEl.textContent = "Осталось: " + timeLeft + " сек";
+                }
+            }, 1000);
+        }
+
+        function endGame() {
+            playing = false;
+            clearInterval(timer);
+            clickBtn.disabled = true;
+            hello.textContent = "красава, " + playerName + "!";
+            resultEl.textContent = "Твой результат: " + clicks;
+            restartBtn.classList.remove("hidden");
+            surrenderBtn.classList.remove("hidden");
+        }
+
+        nameInput.addEventListener("input", () => {
+            startBtn.disabled = nameInput.value.trim() === "";
+        });
+
+        startBtn.addEventListener("click", () => {
+            const name = nameInput.value.trim();
+            if (name === "") {
+                nameInput.focus();
+                return;
+            }
+            playerName = name;
+            hello.textContent = "Удачи, " + playerName + "!";
+            startScreen.classList.add("hidden");
+            gameScreen.classList.remove("hidden");
+            startGame();
+        });
+
+        clickBtn.addEventListener("click", () => {
+            if (!playing) return;
+            clicks += 1;
+            scoreEl.textContent = clicks;
+        });
+
+        restartBtn.addEventListener("click", startGame);
+
+        surrenderBtn.addEventListener("click", () => {
+            window.close();
+            setTimeout(() => {
+                document.body.innerHTML =
+                    '<div style="text-align:center"><h1>Спасибо за игру!</h1>' +
+                    '<p style="color:#94a3b8">Вкладку можно закрыть.</p></div>';
+            }, 300);
+        });
+    </script>
+</body>
+</html>
