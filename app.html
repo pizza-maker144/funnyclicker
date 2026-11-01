@@ -55,6 +55,7 @@
             margin: 8px 0 16px;
         }
 
+        #start-btn,
         #click-btn {
             width: 100%;
             padding: 32px;
@@ -68,6 +69,12 @@
             transition: transform 0.05s;
         }
 
+        #start-btn {
+            padding: 24px;
+            margin-top: 8px;
+        }
+
+        #start-btn:active,
         #click-btn:active:not(:disabled) {
             transform: scale(0.98);
         }
@@ -114,13 +121,18 @@
     <div class="app">
         <img src="banner.svg" alt="Кликер" class="banner">
         <h1 id="hello">Привет!</h1>
-        <div class="status" id="status">Осталось: 10 секунд</div>
-        <div class="score" id="score">0</div>
-        <button id="click-btn">Клик!</button>
-        <div class="result" id="result"></div>
-        <div class="actions hidden" id="actions">
-            <button id="restart-btn">Тренироваться</button>
-            <button id="surrender-btn">Сдаться</button>
+        <p class="status" id="hint">У тебя 10 секунд. Нажми «Начать», когда будешь готов.</p>
+        <button id="start-btn">Начать</button>
+
+        <div id="game" class="hidden">
+            <div class="status" id="status">Осталось: 10 секунд</div>
+            <div class="score" id="score">0</div>
+            <button id="click-btn">Клик!</button>
+            <div class="result" id="result"></div>
+            <div class="actions hidden" id="actions">
+                <button id="restart-btn">Тренироваться</button>
+                <button id="surrender-btn">Сдаться</button>
+            </div>
         </div>
     </div>
 
@@ -133,6 +145,9 @@
         const playerName = tgUser.first_name || "друг";
 
         const helloEl = document.getElementById("hello");
+        const hintEl = document.getElementById("hint");
+        const startBtn = document.getElementById("start-btn");
+        const gameEl = document.getElementById("game");
         const statusEl = document.getElementById("status");
         const scoreEl = document.getElementById("score");
         const clickBtn = document.getElementById("click-btn");
@@ -145,6 +160,8 @@
         let timeLeft = 10;
         let timer = null;
         let playing = false;
+
+        helloEl.textContent = "Привет, " + playerName + "!";
 
         function startGame() {
             clicks = 0;
@@ -181,6 +198,13 @@
             }
         }
 
+        startBtn.addEventListener("click", () => {
+            startBtn.classList.add("hidden");
+            hintEl.classList.add("hidden");
+            gameEl.classList.remove("hidden");
+            startGame();
+        });
+
         clickBtn.addEventListener("click", () => {
             if (!playing) return;
             clicks += 1;
@@ -192,8 +216,6 @@
 
         restartBtn.addEventListener("click", startGame);
         surrenderBtn.addEventListener("click", () => tg.close());
-
-        startGame();
     </script>
 </body>
 </html>
