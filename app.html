@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Мини-приложение</title>
+    <title>Кликер</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         * {
@@ -14,7 +14,7 @@
 
         body {
             min-height: 100vh;
-            padding: 24px;
+            padding: 16px;
             font-family: system-ui, sans-serif;
             background: var(--tg-theme-bg-color, #0f172a);
             color: var(--tg-theme-text-color, #e2e8f0);
@@ -31,41 +31,97 @@
 
         .banner {
             width: 100%;
-            border-radius: 20px;
+            border-radius: 16px;
             display: block;
-            margin-bottom: 20px;
+            margin-bottom: 16px;
         }
 
         h1 {
-            font-size: 24px;
-            margin-bottom: 12px;
+            font-size: 22px;
+            margin-bottom: 8px;
         }
 
-        p {
+        .status {
             color: var(--tg-theme-hint-color, #94a3b8);
-            line-height: 1.6;
-            margin-bottom: 12px;
+            font-size: 15px;
+            margin-bottom: 8px;
         }
 
-        button {
-            margin-top: 12px;
-            padding: 14px 28px;
-            font-size: 16px;
+        .score {
+            font-size: 64px;
+            font-weight: 700;
+            line-height: 1.1;
+            color: var(--tg-theme-button-color, #6366f1);
+            margin: 8px 0 16px;
+        }
+
+        #click-btn {
+            width: 100%;
+            padding: 32px;
+            font-size: 24px;
+            font-weight: 700;
             border: none;
-            border-radius: 12px;
+            border-radius: 16px;
             background: var(--tg-theme-button-color, #6366f1);
             color: var(--tg-theme-button-text-color, #ffffff);
             cursor: pointer;
+            transition: transform 0.05s;
+        }
+
+        #click-btn:active:not(:disabled) {
+            transform: scale(0.98);
+        }
+
+        #click-btn:disabled {
+            opacity: 0.5;
+        }
+
+        .result {
+            min-height: 24px;
+            margin-top: 12px;
+            font-weight: 600;
+            color: var(--tg-theme-link-color, #a5b4fc);
+        }
+
+        .actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        .actions button {
+            flex: 1;
+            padding: 14px;
+            font-size: 16px;
+            border: none;
+            border-radius: 12px;
+            background: var(--tg-theme-secondary-bg-color, #1e293b);
+            color: var(--tg-theme-text-color, #e2e8f0);
+            cursor: pointer;
+        }
+
+        #surrender-btn {
+            background: #e11d48;
+            color: #ffffff;
+        }
+
+        .hidden {
+            display: none;
         }
     </style>
 </head>
 <body>
     <div class="app">
         <img src="banner.svg" alt="Кликер" class="banner">
-        <h1>Привет из мини-приложения</h1>
-        <p>Это обычная веб-страница, но открывается она внутри Telegram. Она знает, кто её открыл, и подстраивается под тему пользователя.</p>
-        <p id="user"></p>
-        <button id="close">Закрыть</button>
+        <h1 id="hello">Привет!</h1>
+        <div class="status" id="status">Осталось: 10 секунд</div>
+        <div class="score" id="score">0</div>
+        <button id="click-btn">Клик!</button>
+        <div class="result" id="result"></div>
+        <div class="actions hidden" id="actions">
+            <button id="restart-btn">Тренироваться</button>
+            <button id="surrender-btn">Сдаться</button>
+        </div>
     </div>
 
     <script>
@@ -73,15 +129,71 @@
         tg.ready();
         tg.expand();
 
-        const user = tg.initDataUnsafe && tg.initDataUnsafe.user;
-        if (user) {
-            document.getElementById("user").textContent =
-                "Привет, " + (user.first_name || "друг") + "!";
+        const tgUser = (tg.initDataUnsafe && tg.initDataUnsafe.user) || {};
+        const playerName = tgUser.first_name || "друг";
+
+        const helloEl = document.getElementById("hello");
+        const statusEl = document.getElementById("status");
+        const scoreEl = document.getElementById("score");
+        const clickBtn = document.getElementById("click-btn");
+        const resultEl = document.getElementById("result");
+        const actionsEl = document.getElementById("actions");
+        const restartBtn = document.getElementById("restart-btn");
+        const surrenderBtn = document.getElementById("surrender-btn");
+
+        let clicks = 0;
+        let timeLeft = 10;
+        let timer = null;
+        let playing = false;
+
+        function startGame() {
+            clicks = 0;
+            timeLeft = 10;
+            playing = true;
+            helloEl.textContent = "Привет, " + playerName + "!";
+            scoreEl.textContent = "0";
+            statusEl.textContent = "Осталось: 10 секунд";
+            resultEl.textContent = "";
+            clickBtn.disabled = false;
+            actionsEl.classList.add("hidden");
+
+            clearInterval(timer);
+            timer = setInterval(() => {
+                timeLeft -= 1;
+                if (timeLeft <= 0) {
+                    endGame();
+                } else {
+                    statusEl.textContent = "Осталось: " + timeLeft + " сек";
+                }
+            }, 1000);
         }
 
-        document.getElementById("close").addEventListener("click", () => {
-            tg.close();
+        function endGame() {
+            playing = false;
+            clearInterval(timer);
+            clickBtn.disabled = true;
+            helloEl.textContent = "Красава, " + playerName + "!";
+            statusEl.textContent = "Твой результат: " + clicks;
+            resultEl.textContent = clicks >= 50 ? "Это уровень бог" : "Можно быстрее!";
+            actionsEl.classList.remove("hidden");
+            if (tg.HapticFeedback) {
+                tg.HapticFeedback.notificationOccurred("success");
+            }
+        }
+
+        clickBtn.addEventListener("click", () => {
+            if (!playing) return;
+            clicks += 1;
+            scoreEl.textContent = clicks;
+            if (clicks % 10 === 0 && tg.HapticFeedback) {
+                tg.HapticFeedback.impactOccurred("medium");
+            }
         });
+
+        restartBtn.addEventListener("click", startGame);
+        surrenderBtn.addEventListener("click", () => tg.close());
+
+        startGame();
     </script>
 </body>
 </html>
