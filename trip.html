@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Калькулятор отпуска</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            padding: 16px;
+            font-family: system-ui, sans-serif;
+            background: var(--tg-theme-bg-color, #0f172a);
+            color: var(--tg-theme-text-color, #e2e8f0);
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        .app {
+            max-width: 560px;
+            width: 100%;
+        }
+
+        h1 {
+            font-size: 24px;
+            margin-bottom: 6px;
+        }
+
+        .hint {
+            color: var(--tg-theme-hint-color, #94a3b8);
+            font-size: 14px;
+            line-height: 1.5;
+            margin-bottom: 16px;
+        }
+
+        .field {
+            margin-bottom: 12px;
+        }
+
+        .field label {
+            display: block;
+            font-size: 14px;
+            color: var(--tg-theme-hint-color, #94a3b8);
+            margin-bottom: 6px;
+        }
+
+        .field input {
+            width: 100%;
+            padding: 12px 14px;
+            font-size: 17px;
+            border: 1px solid var(--tg-theme-secondary-bg-color, #334155);
+            border-radius: 12px;
+            background: var(--tg-theme-secondary-bg-color, #1e293b);
+            color: var(--tg-theme-text-color, #e2e8f0);
+            outline: none;
+        }
+
+        .field input:focus {
+            border-color: var(--tg-theme-button-color, #6366f1);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .result {
+            margin-top: 20px;
+            padding: 18px;
+            border-radius: 16px;
+            background: var(--tg-theme-secondary-bg-color, #1e293b);
+        }
+
+        .row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            font-size: 15px;
+        }
+
+        .row span:first-child {
+            color: var(--tg-theme-hint-color, #94a3b8);
+        }
+
+        .row.total {
+            font-size: 20px;
+            font-weight: 700;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+            margin-bottom: 6px;
+        }
+
+        .row.total span:last-child {
+            color: var(--tg-theme-button-color, #6366f1);
+        }
+
+        .actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 16px;
+        }
+
+        .actions button {
+            flex: 1;
+            padding: 14px;
+            font-size: 16px;
+            border: none;
+            border-radius: 12px;
+            background: var(--tg-theme-button-color, #6366f1);
+            color: var(--tg-theme-button-text-color, #ffffff);
+            cursor: pointer;
+        }
+
+        .actions button.secondary {
+            background: var(--tg-theme-secondary-bg-color, #334155);
+            color: var(--tg-theme-text-color, #e2e8f0);
+        }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <h1>Калькулятор отпуска</h1>
+        <p class="hint">Введи цены — итог пересчитается сразу. Запас 10% на непредвиденное уже учтён.</p>
+
+        <div class="field">
+            <label>Перелёт на человека, ₽</label>
+            <input id="flight" type="number" inputmode="numeric" min="0" value="15000">
+        </div>
+
+        <div class="grid">
+            <div class="field">
+                <label>Жильё за ночь, ₽</label>
+                <input id="housing" type="number" inputmode="numeric" min="0" value="4000">
+            </div>
+            <div class="field">
+                <label>Ночей</label>
+                <input id="nights" type="number" inputmode="numeric" min="1" value="7">
+            </div>
+        </div>
+
+        <div class="grid">
+            <div class="field">
+                <label>Еда на человека в день, ₽</label>
+                <input id="food" type="number" inputmode="numeric" min="0" value="1500">
+            </div>
+            <div class="field">
+                <label>Экскурсии на человека, ₽</label>
+                <input id="extras" type="number" inputmode="numeric" min="0" value="3000">
+            </div>
+        </div>
+
+        <div class="grid">
+            <div class="field">
+                <label>Человек</label>
+                <input id="people" type="number" inputmode="numeric" min="1" value="2">
+            </div>
+            <div class="field">
+                <label>Копим месяцев</label>
+                <input id="months" type="number" inputmode="numeric" min="1" value="6">
+            </div>
+        </div>
+
+        <div class="result">
+            <div class="row total">
+                <span>Итого</span>
+                <span id="total">—</span>
+            </div>
+            <div class="row">
+                <span>На человека</span>
+                <span id="per-person">—</span>
+            </div>
+            <div class="row">
+                <span>С запасом 10%</span>
+                <span id="buffered">—</span>
+            </div>
+            <div class="row">
+                <span>Откладывать в месяц</span>
+                <span id="per-month">—</span>
+            </div>
+        </div>
+
+        <div class="actions">
+            <button id="share">Поделиться</button>
+            <button id="close" class="secondary">Закрыть</button>
+        </div>
+    </div>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.ready();
+        tg.expand();
+
+        const ids = ["flight", "housing", "nights", "food", "extras", "people", "months"];
+        const inputs = {};
+        ids.forEach((id) => {
+            inputs[id] = document.getElementById(id);
+        });
+
+        const totalEl = document.getElementById("total");
+        const perPersonEl = document.getElementById("per-person");
+        const bufferedEl = document.getElementById("buffered");
+        const perMonthEl = document.getElementById("per-month");
+
+        function num(id, fallback) {
+            const value = Number(inputs[id].value);
+            return Number.isFinite(value) && value > 0 ? value : fallback;
+        }
+
+        function money(value) {
+            return Math.round(value).toLocaleString("ru-RU") + " ₽";
+        }
+
+        let currentTotal = 0;
+        let currentPerMonth = 0;
+
+        function calc() {
+            const flight = num("flight", 0);
+            const housing = num("housing", 0);
+            const nights = num("nights", 1);
+            const food = num("food", 0);
+            const extras = num("extras", 0);
+            const people = num("people", 1);
+            const months = num("months", 1);
+
+            const total =
+                people * flight +
+                housing * nights +
+                people * food * nights +
+                people * extras;
+
+            const buffered = total * 1.1;
+
+            currentTotal = total;
+            currentPerMonth = buffered / months;
+
+            totalEl.textContent = money(total);
+            perPersonEl.textContent = money(total / people);
+            bufferedEl.textContent = money(buffered);
+            perMonthEl.textContent = money(currentPerMonth);
+        }
+
+        ids.forEach((id) => {
+            inputs[id].addEventListener("input", calc);
+        });
+
+        document.getElementById("share").addEventListener("click", async () => {
+            const text =
+                "Отпуск: " + num("people", 1) + " чел., " + num("nights", 1) + " ночей\n" +
+                "Итого: " + money(currentTotal) + "\n" +
+                "С запасом 10%: " + money(currentTotal * 1.1) + "\n" +
+                "Откладывать в месяц: " + money(currentPerMonth) + "\n" +
+                "Посчитать: https://pizza-maker144.github.io/funnyclicker/trip.html";
+
+            if (navigator.share) {
+                try {
+                    await navigator.share({ text: text });
+                    return;
+                } catch (e) {
+                    return;
+                }
+            }
+
+            try {
+                await navigator.clipboard.writeText(text);
+                tg.showAlert("Текст скопирован");
+            } catch (e) {
+                tg.showAlert(text);
+            }
+        });
+
+        document.getElementById("close").addEventListener("click", () => tg.close());
+
+        calc();
+    </script>
+</body>
+</html>
